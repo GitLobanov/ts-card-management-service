@@ -7,6 +7,7 @@ import by.lobanov.cardmanagementservice.model.entity.User;
 import by.lobanov.cardmanagementservice.repository.RefreshTokenRepository;
 import by.lobanov.cardmanagementservice.repository.UserRepository;
 import by.lobanov.cardmanagementservice.service.RefreshTokenService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,8 +20,12 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
+import static by.lobanov.cardmanagementservice.util.ServiceMessagesUtil.REFRESH_TOKEN_WAS_EXPIRED;
+import static by.lobanov.cardmanagementservice.util.ServiceMessagesUtil.USER_NOT_FOUND_WITH_EMAIL;
+
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class RefreshTokenServiceImpl implements RefreshTokenService {
 
     private static final Logger logger = LoggerFactory.getLogger(RefreshTokenServiceImpl.class);
@@ -31,26 +36,18 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserRepository userRepository;
 
-    @Autowired
-    public RefreshTokenServiceImpl(RefreshTokenRepository refreshTokenRepository, UserRepository userRepository) {
-        this.refreshTokenRepository = refreshTokenRepository;
-        this.userRepository = userRepository;
-    }
-
     @Override
     public Optional<RefreshToken> findByToken(String token) {
         return refreshTokenRepository.findByToken(token);
     }
 
     @Override
-    @Transactional // Важно для удаления и создания в одной транзакции
+    @Transactional
     public RefreshToken createRefreshToken(UUID userId) {
         User user = userRepository.findById(userId).orElseThrow(
                 () -> new ResourceNotFoundException("User not found with id: " + userId)
         );
 
-        // Удаляем старые токены этого пользователя для простоты (один активный токен на пользователя)
-        // В более сложных сценариях можно разрешать несколько токенов (например, с разных устройств)
         int deletedCount = refreshTokenRepository.deleteByUser(user);
         if (deletedCount > 0) {
             logger.info("Deleted {} existing refresh token(s) for user ID: {}", deletedCount, userId);
@@ -59,7 +56,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setUser(user);
         refreshToken.setExpiryDate(Instant.now().plusMillis(refreshTokenDurationMs));
-        refreshToken.setToken(UUID.randomUUID().toString()); // Генерируем уникальный токен
+        refreshToken.setToken(UUID.randomUUID().toString());
 
         refreshToken = refreshTokenRepository.save(refreshToken);
         logger.info("Created new refresh token for user ID: {}", userId);
@@ -67,12 +64,12 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     }
 
     @Override
-    @Transactional // Если токен истек, мы его удаляем
+    @Transactional
     public RefreshToken verifyExpiration(RefreshToken token) {
         if (token.getExpiryDate().isBefore(Instant.now())) {
             logger.warn("Refresh token expired and will be deleted: {}", token.getToken());
             refreshTokenRepository.delete(token);
-            throw new TokenRefreshException(token.getToken(), "Refresh token was expired. Please make a new signin request");
+            throw new TokenRefreshException(token.getToken(), REFRESH_TOKEN_WAS_EXPIRED);
         }
         logger.debug("Refresh token is valid: {}", token.getToken());
         return token;
@@ -82,7 +79,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     @Transactional
     public int deleteByUserId(UUID userId) {
         User user = userRepository.findById(userId).orElseThrow(
-                () -> new ResourceNotFoundException("User not found with id: " + userId)
+                () -> new ResourceNotFoundException(USER_NOT_FOUND_WITH_EMAIL + userId)
         );
         int deletedCount = refreshTokenRepository.deleteByUser(user);
         logger.info("Deleted {} refresh token(s) for user ID: {} by explicit request (logout/etc).", deletedCount, userId);

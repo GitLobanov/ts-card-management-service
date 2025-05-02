@@ -31,6 +31,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+import static by.lobanov.cardmanagementservice.util.ServiceMessagesUtil.ADMIN_CANNOT_MANUALLY_SET_STATUS_EXPIRED;
+import static by.lobanov.cardmanagementservice.util.ServiceMessagesUtil.CANNOT_ACTIVATE_EXPIRED_CARD_ID;
+import static by.lobanov.cardmanagementservice.util.ServiceMessagesUtil.CARD_NOT_FOUND;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -42,7 +46,7 @@ public class CardServiceImpl implements CardService {
     private final CardNumberGeneratorService cardNumberGeneratorService;
 
     @Override
-    @Transactional // Метод изменяет данные
+    @Transactional
     public CardDto createCard(CreateCardRequest request) {
         log.info("Admin request to create card for user ID: {}", request.getUserId());
         User owner = userRepository.findById(request.getUserId())
@@ -66,7 +70,7 @@ public class CardServiceImpl implements CardService {
         log.debug("Admin request to get filtered cards. Filters: status={}, ownerEmail={}, minBalance={}, maxBalance={}. Pageable: {}",
                 status, ownerEmail, minBalance, maxBalance, pageable);
         Specification<Card> spec = CardSpecification.filterBy(status, ownerEmail, minBalance, maxBalance);
-        Page<Card> cardPage = cardRepository.findAll(spec, pageable); // Используем findAll со спецификацией
+        Page<Card> cardPage = cardRepository.findAll(spec, pageable);
         return cardPage.map(this::mapToCardDto);
     }
 
@@ -83,17 +87,17 @@ public class CardServiceImpl implements CardService {
     public CardDto updateCardStatusAsAdmin(UUID id, CardStatus newStatus) {
         log.info("Admin request to update status for card ID: {} to {}", id, newStatus);
         if (newStatus == CardStatus.EXPIRED) {
-            throw new BadRequestException("Admin cannot manually set status to EXPIRED.");
+            throw new BadRequestException(ADMIN_CANNOT_MANUALLY_SET_STATUS_EXPIRED);
         }
         Card card = findCardByIdOrThrow(id);
 
         if (card.getStatus() == newStatus) {
             log.warn("Card ID: {} already has status {}. No update performed.", id, newStatus);
-            return mapToCardDto(card); // Возвращаем без изменений
+            return mapToCardDto(card);
         }
 
         if (card.getStatus() == CardStatus.EXPIRED && newStatus == CardStatus.ACTIVE) {
-            throw new CardOperationException("Cannot activate an expired card ID: " + id);
+            throw new CardOperationException(CANNOT_ACTIVATE_EXPIRED_CARD_ID + id);
         }
 
 
@@ -106,11 +110,10 @@ public class CardServiceImpl implements CardService {
     @Override
     @Transactional
     public void deleteCardAsAdmin(UUID id) {
-        log.warn("Admin request to delete card ID: {}", id); // Warn т.к. удаление - серьезная операция
+        log.warn("Admin request to delete card ID: {}", id);
         if (!cardRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Card not found with id: " + id);
+            throw new ResourceNotFoundException(CARD_NOT_FOUND + id);
         }
-        // Могут быть доп. проверки (например, нельзя удалить карту с ненулевым балансом?)
         cardRepository.deleteById(id);
         log.info("Card ID: {} deleted successfully by admin", id);
     }
@@ -144,7 +147,6 @@ public class CardServiceImpl implements CardService {
 
         if (card.getStatus() == CardStatus.BLOCKED) {
             log.warn("User {} requested to block card ID: {}, but it's already blocked.", currentUser.getEmail(), id);
-            // Можно вернуть текущее состояние
             return mapToCardDto(card);
         }
 
@@ -159,7 +161,7 @@ public class CardServiceImpl implements CardService {
     }
 
     @Override
-    @Transactional // Крайне важная аннотация для перевода!
+    @Transactional
     public void transferFunds(TransferRequest request) {
         User currentUser = authenticationHelper.getCurrentUser();
         UUID fromCardId = request.getFromCardId();
@@ -198,8 +200,7 @@ public class CardServiceImpl implements CardService {
         fromCard.setBalance(fromCard.getBalance().subtract(amount));
         toCard.setBalance(toCard.getBalance().add(amount));
 
-        // Сохраняем изменения (в рамках одной транзакции)
-        cardRepository.saveAll(List.of(fromCard, toCard)); // Эффективнее, чем два save() по отдельности
+        cardRepository.saveAll(List.of(fromCard, toCard));
 
         log.info("Transfer successful for user {}: {} transferred from card {} to card {}",
                 currentUser.getEmail(), amount, fromCardId, toCardId);

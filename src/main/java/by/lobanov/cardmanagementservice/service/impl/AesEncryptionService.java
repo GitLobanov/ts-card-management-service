@@ -20,18 +20,16 @@ import java.util.Base64;
 public class AesEncryptionService implements EncryptionService {
 
     private static final String ALGORITHM = "AES/GCM/NoPadding";
-    private static final int GCM_IV_LENGTH = 12; // bytes - recommended for GCM
-    private static final int GCM_TAG_LENGTH = 128; // bits
+    private static final int GCM_IV_LENGTH = 12;
+    private static final int GCM_TAG_LENGTH = 128;
 
     private final SecretKey secretKey;
 
     public AesEncryptionService(@Value("${app.encryption.key}") String encryptionKey) {
         if (encryptionKey == null || encryptionKey.length() != 32) {
-            // AES-256 требует ключ длиной 32 байта (256 бит)
             log.error("Invalid encryption key length. Key must be 32 bytes long. Provided length: {}", encryptionKey != null ? encryptionKey.length() : "null");
             throw new IllegalArgumentException("Invalid encryption key length. Key must be 32 bytes long.");
         }
-        // Преобразуем строку ключа в SecretKey
         this.secretKey = new SecretKeySpec(encryptionKey.getBytes(StandardCharsets.UTF_8), "AES");
         log.info("AES Encryption Service initialized successfully.");
     }
@@ -44,7 +42,7 @@ public class AesEncryptionService implements EncryptionService {
         try {
             byte[] iv = new byte[GCM_IV_LENGTH];
             SecureRandom random = new SecureRandom();
-            random.nextBytes(iv); // Генерируем случайный IV
+            random.nextBytes(iv);
 
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);

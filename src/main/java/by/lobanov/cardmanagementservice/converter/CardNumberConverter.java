@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
+import static by.lobanov.cardmanagementservice.util.ServiceMessagesUtil.ENCRYPTION_HAS_NOT_BEEN_INJECTED_INTO_CARD_NUMBER_CONVERTER;
+
 @Converter
 @Component
 public class CardNumberConverter implements AttributeConverter<String, String> {
@@ -28,11 +30,11 @@ public class CardNumberConverter implements AttributeConverter<String, String> {
 
     @Override
     public String convertToEntityAttribute(String dbData) {
-        if (dbData == null || encryptionService == null) {
+        if (dbData == null) {
             return null;
         }
         if (encryptionService == null) {
-            throw new IllegalStateException("EncryptionService has not been injected into CardNumberConverter");
+            throw new IllegalStateException(ENCRYPTION_HAS_NOT_BEEN_INJECTED_INTO_CARD_NUMBER_CONVERTER);
         }
         return encryptionService.decrypt(dbData);
     }

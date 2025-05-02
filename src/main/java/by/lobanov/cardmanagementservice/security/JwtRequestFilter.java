@@ -8,6 +8,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,15 +24,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 @Component
+@RequiredArgsConstructor
 public class JwtRequestFilter extends OncePerRequestFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtRequestFilter.class);
 
-    @Autowired
-    private JwtUtil jwtUtil;
-
-    @Autowired
-    private UserDetailsServiceImpl userDetailsService;
+    private final JwtUtil jwtUtil;
+    private final UserDetailsServiceImpl userDetailsService;
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String BEARER_PREFIX = "Bearer ";
@@ -41,57 +40,49 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         try {
-            String jwt = parseJwt(request); // Извлекаем токен из заголовка
+            String jwt = parseJwt(request);
 
-            if (jwt != null && jwtUtil.validateToken(jwt)) { // Проверяем наличие и валидность токена
-                String username = jwtUtil.extractUsername(jwt); // Извлекаем email
+            if (jwt != null && jwtUtil.validateToken(jwt)) {
+                String username = jwtUtil.extractUsername(jwt);
 
-                // Загружаем UserDetails
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                // Создаем объект аутентификации
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities()); // Пароль не нужен, т.к. токен уже подтверждает аутентификацию
+                        userDetails, null, userDetails.getAuthorities());
 
-                // Добавляем детали аутентификации (IP, сессия и т.д.)
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-                // Устанавливаем аутентификацию в SecurityContext
-                // После этого пользователь считается аутентифицированным для данного запроса
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-                logger.debug("User '{}' authenticated successfully via JWT.", username); // Используем debug уровень
+                logger.debug("User '{}' authenticated successfully via JWT.", username);
             } else {
                 if (jwt != null) {
-                    logger.trace("JWT Token validation failed for token: {}", jwt); // Trace, т.к. невалидный токен не ошибка приложения
+                    logger.trace("JWT Token validation failed for token: {}", jwt);
                 } else {
                     logger.trace("No JWT token found in request to {}", request.getRequestURI());
                 }
             }
         } catch (ExpiredJwtException e) {
             logger.warn("JWT token is expired: {}", e.getMessage());
-            // Можно установить специфичный атрибут запроса или заголовок ответа, если нужно
-            // request.setAttribute("expired", e.getMessage());
-            SecurityContextHolder.clearContext(); // Очищаем контекст, если токен истек
+            SecurityContextHolder.clearContext();
         } catch (JwtException | UsernameNotFoundException e) {
             logger.error("Cannot set user authentication: {}", e.getMessage());
-            SecurityContextHolder.clearContext(); // Очищаем контекст при любой ошибке
+            SecurityContextHolder.clearContext();
         } catch (Exception e) {
             logger.error("An unexpected error occurred during JWT processing: {}", e.getMessage(), e);
             SecurityContextHolder.clearContext();
         }
 
 
-        filterChain.doFilter(request, response); // Передаем запрос дальше по цепочке фильтров
+        filterChain.doFilter(request, response);
     }
 
-    // Вспомогательный метод для извлечения токена из заголовка Authorization
     private String parseJwt(HttpServletRequest request) {
         String headerAuth = request.getHeader(AUTHORIZATION_HEADER);
 
         if (StringUtils.hasText(headerAuth) && headerAuth.startsWith(BEARER_PREFIX)) {
-            return headerAuth.substring(BEARER_PREFIX.length()); // Обрезаем "Bearer "
+            return headerAuth.substring(BEARER_PREFIX.length());
         }
 
-        return null; // Возвращаем null, если заголовок отсутствует или не соответствует формату
+        return null;
     }
 }

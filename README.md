@@ -6,16 +6,16 @@ Backend-часть системы управления банковскими к
 
 ## Стек Технологий
 
-*   **Язык:** Java 17+
+*   **Язык:** Java 17
 *   **Фреймворк:** Spring Boot 3.x
 *   **Безопасность:** Spring Security (JWT аутентификация + Refresh Tokens)
 *   **Работа с данными:** Spring Data JPA (Hibernate)
 *   **База данных:** PostgreSQL (в Docker)
 *   **Миграции БД:** Liquibase
-*   **Документация API:** OpenAPI 3 (Swagger UI)
+*   **Документация API:** [OpenAPI 3 (Swagger UI)](https://springdoc.org/#getting-started)
 *   **Сборка:** Gradle (Groovy DSL)
 *   **Контейнеризация:** Docker, Docker Compose
-*   **Вспомогательные:** Lombok, Spring Validation, Apache Commons Validator
+*   **Вспомогательные:** Lombok, MapStruct Spring Validation, Apache Commons Validator
 
 ## Функциональные Возможности (Кратко)
 
@@ -56,7 +56,7 @@ Backend-часть системы управления банковскими к
 ### Инструкции по запуску
 1.  **Клонируйте репозиторий:**
     ```bash
-    git clone <URL репозитория>
+    git clone https://github.com/GitLobanov/ts-card-management-service
     cd card-management-system
     ```
 2.  **(Важно!) Настройте секреты:**
@@ -110,10 +110,7 @@ Backend-часть системы управления банковскими к
 
 ## TODO / Возможные Улучшения
 * Покрытие кода юнит-тестами и интеграционными тестами.
-+ Переход на id UUID
-+ Подключить MapStruct
-+ Поправить аннотации в контроллерах
-* Выделить контроллеры в абстракцию
+* Перейти на маппинг через MapStruct
 * Перевести дто на record
 * Можно ли вынести logic auth in controller in AuthService 
 * Планировщик задач (Scheduler) для очистки старых Refresh Tokens или установки статуса EXPIRED для карт.

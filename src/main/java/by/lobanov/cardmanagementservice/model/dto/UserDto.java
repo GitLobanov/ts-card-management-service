@@ -17,5 +17,5 @@ public class UserDto {
     private String email;
 
     @Schema(description = "Набор ролей пользователя (строковое представление)", example = "[\"ROLE_USER\", \"ROLE_ADMIN\"]")
-    private Set<String> roles; // Используем String для простоты в DTO
+    private Set<String> roles;
 }
