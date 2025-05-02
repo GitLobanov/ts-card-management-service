@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="add-test-users-1" author="your-name">
+        <insert tableName="users">
+            <column name="id" value="c1c299bf-8b3f-4ed6-a161-ff25dccb3d61"/>
+            <column name="email" value="user@example.com"/>
+            <column name="password"
+                    value="$2a$10$1B7umjv2LOm2iyJDr1iOvu6j.A3UJjUqeZMfSznXEN/2gdxHyhXhS"/>
+        </insert>
+        <sql>
+            INSERT INTO user_roles (user_id, role_id)
+            VALUES ((SELECT id FROM users WHERE email = 'user@example.com'),
+                    (SELECT id FROM roles WHERE name = 'ROLE_USER'));
+        </sql>
+
+        <insert tableName="users">
+            <column name="id" value="c2c299bf-8b3f-4ed6-a161-ff25dccb3d62"/>
+            <column name="email" value="admin@example.com"/>
+            <column name="password"
+                    value="$2a$10$HmwhNR//T1o8EkqgkCLtMO/s2jbdPxKAG8isMTMItUhgtMCQQWeXa"/>
+        </insert>
+        <sql>
+            INSERT INTO user_roles (user_id, role_id)
+            VALUES ((SELECT id FROM users WHERE email = 'admin@example.com'),
+                    (SELECT id FROM roles WHERE name = 'ROLE_ADMIN'));
+        </sql>
+    </changeSet>
+</databaseChangeLog>
