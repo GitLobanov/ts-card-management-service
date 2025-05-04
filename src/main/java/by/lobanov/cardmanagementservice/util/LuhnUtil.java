@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 import static by.lobanov.cardmanagementservice.util.ServiceMessagesUtil.FAILED_TO_CALCULATE_DIGIT_FOR_INPUT;
 import static by.lobanov.cardmanagementservice.util.ServiceMessagesUtil.INPUT_NUMBER_CANNOT_BE_NULL_OR_EMPTY;
 
-@Component
 @Slf4j
 @UtilityClass
 public class LuhnUtil {

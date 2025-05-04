@@ -7,7 +7,6 @@ import by.lobanov.cardmanagementservice.util.LuhnUtil;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -25,7 +24,6 @@ public class DefaultCardNumberGenerator implements CardNumberGeneratorService {
     private static final int MAX_GENERATION_ATTEMPTS = 10;
 
     private final SecureRandom random = new SecureRandom();
-    private final LuhnUtil luhnUtil;
     private final CardRepository cardRepository;
     private final CardNumberConverter cardNumberConverter;
 
@@ -51,7 +49,7 @@ public class DefaultCardNumberGenerator implements CardNumberGeneratorService {
                 .mapToObj(String::valueOf)
                 .collect(Collectors.joining());
 
-        String checkDigit = luhnUtil.calculateCheckDigit(prefix);
+        String checkDigit = LuhnUtil.calculateCheckDigit(prefix);
 
         return prefix + checkDigit;
     }

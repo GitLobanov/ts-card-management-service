@@ -41,6 +41,7 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Setter
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_roles",

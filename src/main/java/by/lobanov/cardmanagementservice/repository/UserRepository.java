@@ -24,7 +24,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
      * @return Optional<User> с загруженными ролями.
      */
     @EntityGraph(attributePaths = {"roles"})
-    Optional<User> findByIdWithRoles(UUID id);
+    Optional<User> findById(UUID id);
 
     /**
      * Находит всех пользователей с пагинацией, загружая их роли.

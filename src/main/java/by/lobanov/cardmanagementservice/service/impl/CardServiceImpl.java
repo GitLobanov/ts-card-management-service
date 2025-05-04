@@ -4,6 +4,7 @@ import by.lobanov.cardmanagementservice.exception.BadRequestException;
 import by.lobanov.cardmanagementservice.exception.CardOperationException;
 import by.lobanov.cardmanagementservice.exception.InsufficientFundsException;
 import by.lobanov.cardmanagementservice.exception.ResourceNotFoundException;
+import by.lobanov.cardmanagementservice.mapper.CardMapper;
 import by.lobanov.cardmanagementservice.model.constant.CardStatus;
 import by.lobanov.cardmanagementservice.model.dto.BalanceDto;
 import by.lobanov.cardmanagementservice.model.dto.CardDto;
@@ -44,6 +45,7 @@ public class CardServiceImpl implements CardService {
     private final UserRepository userRepository;
     private final AuthenticationHelper authenticationHelper;
     private final CardNumberGeneratorService cardNumberGeneratorService;
+    private final CardMapper cardMapper;
 
     @Override
     @Transactional
@@ -61,7 +63,7 @@ public class CardServiceImpl implements CardService {
         card.setBalance(BigDecimal.ZERO);
         Card savedCard = cardRepository.save(card);
         log.info("Card created successfully with ID: {} for user ID: {}", savedCard.getId(), owner.getId());
-        return mapToCardDto(savedCard);
+        return cardMapper.toDto(savedCard);
     }
 
     @Override
@@ -71,7 +73,7 @@ public class CardServiceImpl implements CardService {
                 status, ownerEmail, minBalance, maxBalance, pageable);
         Specification<Card> spec = CardSpecification.filterBy(status, ownerEmail, minBalance, maxBalance);
         Page<Card> cardPage = cardRepository.findAll(spec, pageable);
-        return cardPage.map(this::mapToCardDto);
+        return cardPage.map(cardMapper::toDto);
     }
 
     @Override
@@ -79,7 +81,7 @@ public class CardServiceImpl implements CardService {
     public CardDto getCardByIdAsAdmin(UUID id) {
         log.debug("Admin request to get card by ID: {}", id);
         Card card = findCardByIdOrThrow(id);
-        return mapToCardDto(card);
+        return cardMapper.toDto(card);
     }
 
     @Override
@@ -93,7 +95,7 @@ public class CardServiceImpl implements CardService {
 
         if (card.getStatus() == newStatus) {
             log.warn("Card ID: {} already has status {}. No update performed.", id, newStatus);
-            return mapToCardDto(card);
+            return cardMapper.toDto(card);
         }
 
         if (card.getStatus() == CardStatus.EXPIRED && newStatus == CardStatus.ACTIVE) {
@@ -104,7 +106,7 @@ public class CardServiceImpl implements CardService {
         card.setStatus(newStatus);
         Card updatedCard = cardRepository.save(card);
         log.info("Card ID: {} status updated to {} by admin", updatedCard.getId(), newStatus);
-        return mapToCardDto(updatedCard);
+        return cardMapper.toDto(updatedCard);
     }
 
     @Override
@@ -126,7 +128,7 @@ public class CardServiceImpl implements CardService {
                 currentUser.getEmail(), status, minBalance, maxBalance, pageable);
         Specification<Card> spec = CardSpecification.filterBy(status, null, minBalance, maxBalance, currentUser);
         Page<Card> cardPage = cardRepository.findAll(spec, pageable);
-        return cardPage.map(this::mapToCardDto);
+        return cardPage.map(cardMapper::toDto);
     }
 
     @Override
@@ -135,7 +137,7 @@ public class CardServiceImpl implements CardService {
         User currentUser = authenticationHelper.getCurrentUser();
         log.debug("User {} request to get own card by ID: {}", currentUser.getEmail(), id);
         Card card = findCardByIdAndOwnerOrThrow(id, currentUser);
-        return mapToCardDto(card);
+        return cardMapper.toDto(card);
     }
 
     @Override
@@ -147,7 +149,7 @@ public class CardServiceImpl implements CardService {
 
         if (card.getStatus() == CardStatus.BLOCKED) {
             log.warn("User {} requested to block card ID: {}, but it's already blocked.", currentUser.getEmail(), id);
-            return mapToCardDto(card);
+            return cardMapper.toDto(card);
         }
 
         if (card.getStatus() != CardStatus.ACTIVE) {
@@ -157,7 +159,7 @@ public class CardServiceImpl implements CardService {
         card.setStatus(CardStatus.BLOCKED);
         Card updatedCard = cardRepository.save(card);
         log.info("Card ID: {} blocked successfully upon user {} request", updatedCard.getId(), currentUser.getEmail());
-        return mapToCardDto(updatedCard);
+        return cardMapper.toDto(updatedCard);
     }
 
     @Override
@@ -231,16 +233,5 @@ public class CardServiceImpl implements CardService {
     private Card findCardByIdAndOwnerOrThrow(UUID id, User owner) {
         return cardRepository.findByIdAndOwner(id, owner)
                 .orElseThrow(() -> new ResourceNotFoundException("Card not found with id: " + id + " for owner " + owner.getEmail()));
-    }
-
-    private CardDto mapToCardDto(Card card) {
-        CardDto dto = new CardDto();
-        dto.setId(card.getId());
-        dto.setMaskedCardNumber(CardMaskingUtil.maskCardNumber(card.getCardNumber()));
-        dto.setOwnerEmail(card.getOwner().getEmail());
-        dto.setExpiryDate(card.getExpiryDate());
-        dto.setStatus(card.getStatus());
-        dto.setBalance(card.getBalance());
-        return dto;
     }
 }

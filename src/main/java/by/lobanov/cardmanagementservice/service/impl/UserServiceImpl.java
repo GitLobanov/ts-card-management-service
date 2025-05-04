@@ -3,11 +3,9 @@ package by.lobanov.cardmanagementservice.service.impl;
 import by.lobanov.cardmanagementservice.exception.BadRequestException;
 import by.lobanov.cardmanagementservice.exception.ResourceNotFoundException;
 import by.lobanov.cardmanagementservice.mapper.UserMapper;
-import by.lobanov.cardmanagementservice.model.constant.RoleType;
 import by.lobanov.cardmanagementservice.model.dto.UserDto;
 import by.lobanov.cardmanagementservice.model.dto.request.CreateUserRequest;
 import by.lobanov.cardmanagementservice.model.dto.request.UpdateUserRequest;
-import by.lobanov.cardmanagementservice.model.entity.Role;
 import by.lobanov.cardmanagementservice.model.entity.User;
 import by.lobanov.cardmanagementservice.repository.RoleRepository;
 import by.lobanov.cardmanagementservice.repository.UserRepository;
@@ -22,14 +20,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
 import static by.lobanov.cardmanagementservice.util.ServiceMessagesUtil.CANNOT_DELETE_PROTECTED_USER;
 import static by.lobanov.cardmanagementservice.util.ServiceMessagesUtil.EMAIL_IS_ALREADY_TAKEN;
-import static by.lobanov.cardmanagementservice.util.ServiceMessagesUtil.INVALID_ROLE_NAME_PROVIDED;
-import static by.lobanov.cardmanagementservice.util.ServiceMessagesUtil.ROLE_NOT_FOUND;
 import static by.lobanov.cardmanagementservice.util.ServiceMessagesUtil.USER_NOT_FOUND_WITH_ID;
 import static by.lobanov.cardmanagementservice.util.ServiceMessagesUtil.YOU_CANNOT_DELETE_YOUR_OWN_ACCOUNT;
 
@@ -59,7 +54,7 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     public UserDto findUserById(UUID id) {
         log.debug("Request to find user by ID: {}", id);
-        User user = userRepository.findByIdWithRoles(id)
+        User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND_WITH_ID + id));
         return userMapper.toDto(user);
     }
@@ -74,10 +69,8 @@ public class UserServiceImpl implements UserService {
             throw new BadRequestException(String.format(EMAIL_IS_ALREADY_TAKEN, email));
         }
 
-        User user = new User();
-        user.setEmail(email);
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRoles(mapRoleNamesToEntities(request.getRoles()));
+        User user = userMapper.createUserRequestToEntity(request, roleRepository);
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
 
         User savedUser = userRepository.save(user);
         log.info("User created successfully with id {} and email {}", savedUser.getId(), savedUser.getEmail());
@@ -96,7 +89,7 @@ public class UserServiceImpl implements UserService {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
         }
 
-        user.setRoles(mapRoleNamesToEntities(request.getRoles()));
+        user.setRoles(userMapper.mapRoleNamesToEntities(request.getRoles(), roleRepository));
 
         User updatedUser = userRepository.save(user);
         log.info("User updated successfully with ID: {}", updatedUser.getId());
@@ -123,20 +116,5 @@ public class UserServiceImpl implements UserService {
         // TODO: Подумать о дополнительной логике перед удалением (например, проверка баланса карт)
         userRepository.delete(userToDelete);
         log.info("User deleted successfully with ID: {}", id);
-    }
-
-    private Set<Role> mapRoleNamesToEntities(Set<String> roleNames) {
-        Set<Role> roles = new HashSet<>();
-        for (String roleName : roleNames) {
-            try {
-                RoleType roleType = RoleType.valueOf(roleName);
-                Role role = roleRepository.findByName(roleType)
-                        .orElseThrow(() -> new BadRequestException(ROLE_NOT_FOUND + roleName));
-                roles.add(role);
-            } catch (IllegalArgumentException e) {
-                throw new BadRequestException(INVALID_ROLE_NAME_PROVIDED + roleName);
-            }
-        }
-        return roles;
     }
 }

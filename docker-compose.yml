@@ -26,8 +26,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: password
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
       SPRING_LIQUIBASE_ENABLED: true
-      APP_JWT_SECRET: ${APP_JWT_SECRET:-ca728962780bb16aa017a079b60d5698}
-      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:-be8f988d7d815ecddb2df1287dd3206d}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:-1fYouSeeThis1nProdJustDontLookAtAlsoDontTellLeadHeWillBe7ad}
+      APP_ENCRYPTION_KEY: ${APP_ENCRYPTION_KEY:-IfYouSeeThisInProdJustDontLookAt}
 
 volumes:
   postgres-data:

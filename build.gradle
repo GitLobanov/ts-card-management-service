@@ -37,6 +37,9 @@ dependencies {
     implementation "io.jsonwebtoken:jjwt-impl:$jsonwebtokenVersion"
     implementation "io.jsonwebtoken:jjwt-jackson:$jsonwebtokenVersion"
     implementation 'commons-validator:commons-validator:1.7'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'org.testcontainers:postgresql'
     compileOnly 'org.projectlombok:lombok'
     runtimeOnly 'org.postgresql:postgresql'
     annotationProcessor 'org.projectlombok:lombok'

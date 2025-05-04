@@ -35,7 +35,6 @@ public class PagedResponse<T> {
     @Schema(description = "Является ли текущая страница последней", example = "false")
     private boolean last;
 
-    // Статический фабричный метод для удобного создания из Page
     public static <T> PagedResponse<T> fromPage(Page<T> page) {
         PagedResponse<T> response = new PagedResponse<>();
         response.setContent(page.getContent());
